@@ -89,7 +89,7 @@ func generateM3U8(channels *[]Channel) {
 		fmt.Println(c.ChannelName)
 	}
 
-	f, err := os.Create("channel.m3u")
+	f, err := os.Create("channel.m3u8")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -108,5 +108,5 @@ func main() {
 	list := generateChannelList(&j)
 	fmt.Println("Generating m3u8...")
 	generateM3U8(&list)
-	fmt.Println("Done, all saved to channel.m3u")
+	fmt.Println("Done, all saved to channel.m3u8")
 }
