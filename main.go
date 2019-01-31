@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -13,8 +14,13 @@ import (
 	"strconv"
 )
 
-var CHANNEL_API_URL = "http://looktvepg.jsa.bcs.ottcn.com:8080/ysten-lvoms-epg/epg/getChannelIndexs.shtml?deviceGroupId=1697"
-var BASE_URL = "http://183.207.248.71:80/cntv/live1"
+var (
+	help       = flag.Bool("h", false, "This help.")
+	verbose    = flag.Bool("v", false, "Verbose mode.")
+	baseURL    = flag.String("base", "http://183.207.248.71:80/cntv/live1", "Base URL for stream.")
+	apiURL     = flag.String("api", "http://looktvepg.jsa.bcs.ottcn.com:8080/ysten-lvoms-epg/epg/getChannelIndexs.shtml?deviceGroupId=1697", "API URL to fetch channel list.")
+	outputFile = flag.String("o", "channel.m3u8", "Output file path.")
+)
 
 type Channel struct {
 	UUID        string `json:"uuid"`
@@ -23,12 +29,14 @@ type Channel struct {
 }
 
 func (c *Channel) toString() string {
-	u, _ := url.Parse(BASE_URL + "/" + c.ChannelName + "/" + c.UUID)
+	u, _ := url.Parse(*baseURL + "/" + c.ChannelName + "/" + c.UUID)
 	return fmt.Sprintf("#EXTINF:-1,%s\n%s\n", c.ChannelName, u.String())
 }
 
 func getJSONContent() map[string]Channel {
-	resp, err := http.Get(CHANNEL_API_URL)
+	fmt.Println("Fetching channel list...")
+
+	resp, err := http.Get(*apiURL)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -46,6 +54,8 @@ func getJSONContent() map[string]Channel {
 }
 
 func generateChannelList(json *map[string]Channel) []Channel {
+	fmt.Println("Parsing...")
+
 	keySort := make(map[int]string, len(*json))
 	for key := range *json {
 		number := stringArrayToString(regexp.MustCompile("[0-9]").FindAllStringSubmatch(key, -1))
@@ -82,13 +92,17 @@ func stringArrayToString(array [][]string) string {
 }
 
 func generateM3U8(channels *[]Channel) {
+	fmt.Println("Generating m3u8...")
+
 	content := fmt.Sprintf("#EXTM3U\n\n")
 	for _, c := range *channels {
 		content += c.toString()
-		fmt.Println(c.ChannelName)
+		if *verbose {
+			fmt.Println(c.ChannelName)
+		}
 	}
 
-	f, err := os.Create("channel.m3u8")
+	f, err := os.Create(*outputFile)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -98,14 +112,19 @@ func generateM3U8(channels *[]Channel) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	fmt.Printf("Done, all saved to %s\n", *outputFile)
 }
 
 func main() {
-	fmt.Println("Fetching channel list...")
+	flag.Parse()
+
+	if *help {
+		flag.Usage()
+		return
+	}
+
 	j := getJSONContent()
-	fmt.Println("Parsing...")
-	list := generateChannelList(&j)
-	fmt.Println("Generating m3u8...")
-	generateM3U8(&list)
-	fmt.Println("Done, all saved to channel.m3u8")
+	l := generateChannelList(&j)
+	generateM3U8(&l)
 }
