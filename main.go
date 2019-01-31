@@ -23,9 +23,8 @@ type Channel struct {
 }
 
 func (c *Channel) toString() string {
-	us := fmt.Sprintf("%s/%s/%s", BASE_URL, url.QueryEscape(c.ChannelName), url.QueryEscape(c.UUID))
-	str := fmt.Sprintf("#EXTINF:-1,%s\n%s\n", c.ChannelName, us)
-	return str
+	u, _ := url.Parse(BASE_URL + "/" + c.ChannelName + "/" + c.UUID)
+	return fmt.Sprintf("#EXTINF:-1,%s\n%s\n", c.ChannelName, u.String())
 }
 
 func getJSONContent() map[string]Channel {
